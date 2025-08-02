@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build APK with Buildozer (Manual Setup)
+    name: Build APK with Buildozer (Fix aidl)
     runs-on: ubuntu-latest
 
     steps:
@@ -23,12 +23,10 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt update -y
-        sudo apt install -y git build-essential autoconf libtool pkg-config \
-          libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
-          libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev \
-          libxrandr-dev libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev \
-          libopenjp2-7-dev libharfbuzz-dev libfribidi-dev libxcb1-dev \
-          libegl1-mesa-dev libpng-dev libfreetype6-dev
+        sudo apt install -y build-essential libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
+          libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev libxrandr-dev \
+          libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev libopenjp2-7-dev \
+          libharfbuzz-dev libfribidi-dev libxcb1-dev libegl1-mesa-dev libpng-dev libfreetype6-dev
 
     - name: Install Python dependencies
       run: |
@@ -36,15 +34,23 @@ jobs:
         pip install Cython==0.29.33
         pip install buildozer
 
-    - name: Ensure buildozer.spec exists
+    - name: Setup Buildozer .buildozer directory
       run: |
+        mkdir -p .buildozer/android/platform
+
+    - name: Run Buildozer (will download SDK & fix aidl)
+      run: |
+        # Hapus cache lama jika ada
+        rm -rf ~/.buildozer/android/platform/android-sdk
+        rm -rf ~/.buildozer/android/platform/android-ndk
+
+        # Pastikan buildozer.spec ada
         if [ ! -f buildozer.spec ]; then
-          echo "Error: buildozer.spec not found in the root directory!"
+          echo "❌ buildozer.spec not found!"
           exit 1
         fi
 
-    - name: Run Buildozer (Build APK)
-      run: |
+        # Jalankan buildozer — akan otomatis download SDK
         buildozer android debug
 
     - name: Upload APK
@@ -54,7 +60,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
-    - name: Create GitHub Release
+    - name: Create Release
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
