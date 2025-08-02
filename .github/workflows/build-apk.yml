@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build APK with Buildozer (Fix aidl)
+    name: Build APK with Manual SDK Setup
     runs-on: ubuntu-latest
 
     steps:
@@ -23,10 +23,36 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt update -y
-        sudo apt install -y build-essential libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
-          libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev libxrandr-dev \
-          libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev libopenjp2-7-dev \
-          libharfbuzz-dev libfribidi-dev libxcb1-dev libegl1-mesa-dev libpng-dev libfreetype6-dev
+        sudo apt install -y openjdk-8-jdk-headless git build-essential libffi-dev libssl-dev \
+          libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev libmtdev-dev \
+          libxcursor-dev libxinerama-dev libxrandr-dev libxss-dev libgtk-3-dev \
+          libjpeg-dev libtiff-dev libopenjp2-7-dev libharfbuzz-dev libfribidi-dev \
+          libxcb1-dev libegl1-mesa-dev libpng-dev libfreetype6-dev
+
+    - name: Set Java & SDK Environment
+      run: |
+        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "ANDROID_NDK_HOME=$HOME/android-ndk" >> $GITHUB_ENV
+        echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+
+    - name: Download Android Command-line Tools
+      run: |
+        mkdir -p $ANDROID_HOME
+        curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+        unzip sdk-tools.zip -d $ANDROID_HOME
+        rm sdk-tools.zip
+
+    - name: Accept Android Licenses
+      run: |
+        mkdir -p $ANDROID_HOME/licenses
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
+
+    - name: Install Android SDK & Build Tools
+      run: |
+        # Install sdkmanager
+        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;30.0.3" "platforms;android-30" "cmdline-tools;latest"
 
     - name: Install Python dependencies
       run: |
@@ -34,23 +60,15 @@ jobs:
         pip install Cython==0.29.33
         pip install buildozer
 
-    - name: Setup Buildozer .buildozer directory
+    - name: Ensure buildozer.spec exists
       run: |
-        mkdir -p .buildozer/android/platform
-
-    - name: Run Buildozer (will download SDK & fix aidl)
-      run: |
-        # Hapus cache lama jika ada
-        rm -rf ~/.buildozer/android/platform/android-sdk
-        rm -rf ~/.buildozer/android/platform/android-ndk
-
-        # Pastikan buildozer.spec ada
         if [ ! -f buildozer.spec ]; then
-          echo "❌ buildozer.spec not found!"
+          echo "❌ Error: buildozer.spec not found!"
           exit 1
         fi
 
-        # Jalankan buildozer — akan otomatis download SDK
+    - name: Run Buildozer
+      run: |
         buildozer android debug
 
     - name: Upload APK
