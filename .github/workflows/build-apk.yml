@@ -45,7 +45,11 @@ jobs:
         # Pindahkan isi cmdline-tools ke 'latest', tapi jangan timpa folder itu sendiri
         mv $ANDROID_SDK_ROOT/temp/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || true
         rm -rf $ANDROID_SDK_ROOT/temp cmdline-tools.zip
-
+  # Symlink sdkmanager to legacy location for Buildozer compatibility
+    - run: |
+        mkdir -p $ANDROID_SDK_ROOT/tools/bin
+        ln -sfn $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager $ANDROID_SDK_ROOT/tools/bin/sdkmanager
+        
     - name: Accept Android Licenses
       run: |
         mkdir -p $ANDROID_SDK_ROOT/licenses
