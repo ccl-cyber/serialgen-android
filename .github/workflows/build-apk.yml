@@ -8,35 +8,33 @@ on:
 
 jobs:
   build:
-    name: Build APK with Buildozer
+    name: Build APK with Android Toolchain
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Python
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
+    - name: Setup Android & Buildozer
+      uses: actions-android/toolchain@v3
+      with:
+        api: 30
+        build-tools: "30.0.3"
+        ndk: 25.1.8937393
+        python-version: 3.9
+        kivy: true
+
     - name: Install dependencies
       run: |
-        sudo apt update
-        sudo apt install -y build-essential libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
-          libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev libxrandr-dev libxss-dev \
-          libgtk-3-dev libjpeg-dev libtiff-dev libopenjp2-7-dev libharfbuzz-dev libfribidi-dev \
-          libxcb1-dev libegl1-mesa-dev libpng-dev libfreetype6-dev
-
-        # Install Python packages
-        pip install --upgrade pip
         pip install Cython==0.29.33
-        pip install buildozer
 
     - name: Run Buildozer
       run: |
-        buildozer init || true
-        # Pastikan buildozer.spec sudah ada
         if [ ! -f buildozer.spec ]; then
           echo "Error: buildozer.spec not found!"
           exit 1
