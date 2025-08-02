@@ -23,7 +23,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt update -y
-        sudo apt install -y openjdk-8-jdk-headless unzip git build-essential \
+        sudo apt install -y openjdk-17-jdk unzip git build-essential \
           libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
           libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev \
           libxrandr-dev libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev \
@@ -34,13 +34,13 @@ jobs:
       run: |
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_NDK_HOME=$HOME/android-ndk" >> $GITHUB_ENV
-        echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
-    - name: Download Android Command-line Tools (Java 8 Compatible)
+    - name: Download Android Command-line Tools (Latest)
       run: |
         mkdir -p $ANDROID_HOME/cmdline-tools/latest
-        curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip
+        curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip cmdline-tools.zip -d $ANDROID_HOME/temp
         mv $ANDROID_HOME/temp/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ || true
         rm -rf $ANDROID_HOME/temp cmdline-tools.zip
