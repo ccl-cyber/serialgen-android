@@ -23,12 +23,20 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt update -y
-        sudo apt install -y autoconf automake libtool libtool-bin m4 openjdk-17-jdk unzip git build-essential \
+        sudo apt install -y autoconf automake libtool libtool-bin m4 libltdl-dev openjdk-17-jdk unzip git build-essential \
           libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
           libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev \
           libxrandr-dev libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev \
           libopenjp2-7-dev libharfbuzz-dev libfribidi-dev libxcb1-dev \
           libegl1-mesa-dev libpng-dev libfreetype6-dev
+
+    - name: Update Autotools Macros
+      run: |
+        autoupdate || true
+        aclocal || true
+        autoheader || true
+        automake --add-missing --foreign || true
+        autoconf || true
 
     - name: Set ANDROID_SDK_ROOT
       run: |
@@ -54,13 +62,13 @@ jobs:
       run: |
         mkdir -p $ANDROID_SDK_ROOT/licenses
         cat > $ANDROID_SDK_ROOT/licenses/android-sdk-license << EOF
-        8933bad161af4178b1185d1a37fbf41ea5269c55
-        d56f5187479451eabf01fb78af6dfcb131a6481e
-        24333f8a63b6825ea9c5514f83c2829b004d1fee
-        EOF
+          8933bad161af4178b1185d1a37fbf41ea5269c55
+          d56f5187479451eabf01fb78af6dfcb131a6481e
+          24333f8a63b6825ea9c5514f83c2829b004d1fee
+          EOF
         cat > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license << EOF
-        84831b94b68944526b9738a3ded2ea12651f1541
-        EOF
+          84831b94b68944526b9738a3ded2ea12651f1541
+          EOF
 
     - name: Install SDK Components
       run: |
