@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build APK with Manual SDK Setup
+    name: Build APK with Correct SDK Path
     runs-on: ubuntu-latest
 
     steps:
@@ -23,36 +23,46 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt update -y
-        sudo apt install -y openjdk-8-jdk-headless git build-essential libffi-dev libssl-dev \
-          libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev libmtdev-dev \
-          libxcursor-dev libxinerama-dev libxrandr-dev libxss-dev libgtk-3-dev \
-          libjpeg-dev libtiff-dev libopenjp2-7-dev libharfbuzz-dev libfribidi-dev \
-          libxcb1-dev libegl1-mesa-dev libpng-dev libfreetype6-dev
+        sudo apt install -y openjdk-8-jdk-headless unzip git build-essential \
+          libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
+          libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev \
+          libxrandr-dev libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev \
+          libopenjp2-7-dev libharfbuzz-dev libfribidi-dev libxcb1-dev \
+          libegl1-mesa-dev libpng-dev libfreetype6-dev
 
-    - name: Set Java & SDK Environment
+    - name: Set ANDROID_HOME
       run: |
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_NDK_HOME=$HOME/android-ndk" >> $GITHUB_ENV
         echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
     - name: Download Android Command-line Tools
       run: |
-        mkdir -p $ANDROID_HOME
-        curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-        unzip sdk-tools.zip -d $ANDROID_HOME
-        rm sdk-tools.zip
+        mkdir -p $ANDROID_HOME/cmdline-tools/latest
+        curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+        unzip cmdline-tools.zip -d $ANDROID_HOME/temp
+        # Pindahkan isi cmdline-tools ke dalam 'latest', tapi jangan timpa folder itu sendiri
+        mv $ANDROID_HOME/temp/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ || true
+        rm -rf $ANDROID_HOME/temp cmdline-tools.zip
 
     - name: Accept Android Licenses
       run: |
         mkdir -p $ANDROID_HOME/licenses
-        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
-        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
+        # Tambahkan semua license umum
+        echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
+        echo -e "\n84831b94b68944526b9738a3ded2ea12651f1541" > $ANDROID_HOME/licenses/android-sdk-preview-license
 
-    - name: Install Android SDK & Build Tools
+    - name: Install Build-Tools (30.0.3)
       run: |
-        # Install sdkmanager
-        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;30.0.3" "platforms;android-30" "cmdline-tools;latest"
+        sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;30.0.3" "platforms;android-30"
+
+    - name: Symlink SDK for Buildozer
+      run: |
+        mkdir -p ~/.buildozer/android/platform
+        ln -sfn $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
+        # Verifikasi symlink
+        ls -la ~/.buildozer/android/platform/android-sdk/build-tools/30.0.3/aidl
 
     - name: Install Python dependencies
       run: |
@@ -60,15 +70,12 @@ jobs:
         pip install Cython==0.29.33
         pip install buildozer
 
-    - name: Ensure buildozer.spec exists
-      run: |
-        if [ ! -f buildozer.spec ]; then
-          echo "❌ Error: buildozer.spec not found!"
-          exit 1
-        fi
-
     - name: Run Buildozer
       run: |
+        if [ ! -f buildozer.spec ]; then
+          echo "❌ buildozer.spec not found!"
+          exit 1
+        fi
         buildozer android debug
 
     - name: Upload APK
