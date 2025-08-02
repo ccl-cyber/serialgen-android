@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build APK with Android Toolchain
+    name: Build APK with Buildozer
     runs-on: ubuntu-latest
 
     steps:
@@ -18,18 +18,20 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.9
+        python-version: '3.9'
 
-    - name: Setup Android & Buildozer
-      uses: actions-android/toolchain@v3
+    - name: Setup Buildozer
+      uses: ckulka/setup-buildozer@v1.5.0
       with:
-        api: 30
-        build-tools: "30.0.3"
-        ndk: 25.1.8937393
-        python-version: 3.9
-        kivy: true
+        buildozer-version: latest
+        # Install Android SDK
+        android-api: 30
+        android-build-tools: '30.0.3'
+        android-ndk: '25.1.8937393'
+        # Optional: kivy
+        python-version: '3.9'
 
-    - name: Install dependencies
+    - name: Install Cython (required for Kivy)
       run: |
         pip install Cython==0.29.33
 
