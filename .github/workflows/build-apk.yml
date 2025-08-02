@@ -54,13 +54,13 @@ jobs:
       run: |
         mkdir -p $ANDROID_SDK_ROOT/licenses
         cat > $ANDROID_SDK_ROOT/licenses/android-sdk-license << EOF
-8933bad161af4178b1185d1a37fbf41ea5269c55
-d56f5187479451eabf01fb78af6dfcb131a6481e
-24333f8a63b6825ea9c5514f83c2829b004d1fee
-EOF
+        8933bad161af4178b1185d1a37fbf41ea5269c55
+        d56f5187479451eabf01fb78af6dfcb131a6481e
+        24333f8a63b6825ea9c5514f83c2829b004d1fee
+        EOF
         cat > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license << EOF
-84831b94b68944526b9738a3ded2ea12651f1541
-EOF
+        84831b94b68944526b9738a3ded2ea12651f1541
+        EOF
 
     - name: Install SDK Components
       run: |
@@ -70,7 +70,6 @@ EOF
       run: |
         mkdir -p ~/.buildozer/android/platform
         ln -sf $ANDROID_SDK_ROOT ~/.buildozer/android/platform/android-sdk
-        # Verifikasi
         if [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
           echo "✅ sdkmanager is ready"
         else
