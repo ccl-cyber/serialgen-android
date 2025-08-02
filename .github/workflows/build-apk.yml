@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build APK with Java 8 & Compatible SDK
+    name: Build APK with Correct SDK Setup
     runs-on: ubuntu-latest
 
     steps:
@@ -30,37 +30,44 @@ jobs:
           libopenjp2-7-dev libharfbuzz-dev libfribidi-dev libxcb1-dev \
           libegl1-mesa-dev libpng-dev libfreetype6-dev
 
-    - name: Set ANDROID_HOME
+    - name: Set ANDROID_SDK_ROOT
       run: |
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_NDK_HOME=$HOME/android-ndk" >> $GITHUB_ENV
         echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+        echo "PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
 
-    - name: Download Android Command-line Tools (Latest)
+    - name: Download Android Command-line Tools
       run: |
-        mkdir -p $ANDROID_HOME/cmdline-tools/latest
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
         curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-        unzip cmdline-tools.zip -d $ANDROID_HOME/temp
-        mv $ANDROID_HOME/temp/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ || true
-        rm -rf $ANDROID_HOME/temp cmdline-tools.zip
+        unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT/temp
+        # Pindahkan isi cmdline-tools ke 'latest', tapi jangan timpa folder itu sendiri
+        mv $ANDROID_SDK_ROOT/temp/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || true
+        rm -rf $ANDROID_SDK_ROOT/temp cmdline-tools.zip
 
     - name: Accept Android Licenses
       run: |
-        mkdir -p $ANDROID_HOME/licenses
-        echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
-        echo -e "\n84831b94b68944526b9738a3ded2ea12651f1541" > $ANDROID_HOME/licenses/android-sdk-preview-license
+        mkdir -p $ANDROID_SDK_ROOT/licenses
+        echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
+        echo -e "\n84831b94b68944526b9738a3ded2ea12651f1541" > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
 
-    - name: Install Build-Tools 30.0.3
+    - name: Install SDK Components
       run: |
-        sdkmanager --sdk_root=$ANDROID_HOME --install "platform-tools" "build-tools;30.0.3" "platforms;android-30"
+        sdkmanager --install "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 
     - name: Symlink SDK for Buildozer
       run: |
+        # Buildozer expects SDK at ~/.buildozer/android/platform/android-sdk
         mkdir -p ~/.buildozer/android/platform
-        ln -sfn $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
-        # Verifikasi aidl ada
-        ls -la ~/.buildozer/android/platform/android-sdk/build-tools/30.0.3/aidl
+        ln -sfn $ANDROID_SDK_ROOT ~/.buildozer/android/platform/android-sdk
+        # Verifikasi sdkmanager ada
+        if [ -f "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+          echo "✅ sdkmanager found"
+        else
+          echo "❌ sdkmanager not found!"
+          exit 1
+        fi
 
     - name: Install Python dependencies
       run: |
