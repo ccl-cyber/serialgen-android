@@ -11,6 +11,11 @@ jobs:
     name: Build APK for Android
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_SDK_ROOT: ${{ runner.home }}/android-sdk
+      ANDROID_NDK_HOME: ${{ runner.home }}/android-ndk
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -24,89 +29,57 @@ jobs:
       run: |
         sudo apt update -y
         sudo apt install -y autoconf automake libtool libtool-bin m4 libltdl-dev openjdk-17-jdk unzip git build-essential \
-          libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev \
-          libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev \
-          libxrandr-dev libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev \
-          libopenjp2-7-dev libharfbuzz-dev libfribidi-dev libxcb1-dev \
-          libegl1-mesa-dev libpng-dev libfreetype6-dev
+          libffi-dev libssl-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev libmtdev-dev libxcursor-dev libxinerama-dev \
+          libxrandr-dev libxss-dev libgtk-3-dev libjpeg-dev libtiff-dev libopenjp2-7-dev libharfbuzz-dev libfribidi-dev \
+          libxcb1-dev libegl1-mesa-dev libpng-dev libfreetype6-dev wget
 
-    - name: Update Autotools Macros
+    - name: Install Android cmdline-tools
       run: |
-        autoupdate || true
-        aclocal || true
-        autoheader || true
-        automake --add-missing --foreign || true
-        autoconf || true
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip
+        mv cmdline-tools latest
+        rm cmdline-tools.zip
 
-    - name: Set ANDROID_SDK_ROOT
-      run: |
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "ANDROID_NDK_HOME=$HOME/android-ndk" >> $GITHUB_ENV
-        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+    - name: Update PATH
+      run: echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
-    - name: Download Android Command-line Tools
-      run: |
-        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-        curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-        unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT/temp
-        mv $ANDROID_SDK_ROOT/temp/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || true
-        rm -rf $ANDROID_SDK_ROOT/temp cmdline-tools.zip
-
-    - name: Symlink sdkmanager to legacy path
-      run: |
-        mkdir -p $ANDROID_SDK_ROOT/tools/bin
-        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager $ANDROID_SDK_ROOT/tools/bin/sdkmanager
-
-    - name: Accept Android Licenses
-      run: |
-        mkdir -p $ANDROID_SDK_ROOT/licenses
-        cat > $ANDROID_SDK_ROOT/licenses/android-sdk-license << EOF
-          8933bad161af4178b1185d1a37fbf41ea5269c55
-          d56f5187479451eabf01fb78af6dfcb131a6481e
-          24333f8a63b6825ea9c5514f83c2829b004d1fee
-          EOF
-        cat > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license << EOF
-          84831b94b68944526b9738a3ded2ea12651f1541
-          EOF
+    - name: Accept Android licenses
+      run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
 
     - name: Install SDK Components
       run: |
-        sdkmanager --install "platform-tools" "build-tools;30.0.3" "platforms;android-30"
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34"
 
     - name: Symlink SDK for Buildozer
       run: |
         mkdir -p ~/.buildozer/android/platform
         ln -sf $ANDROID_SDK_ROOT ~/.buildozer/android/platform/android-sdk
-        if [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
-          echo "✅ sdkmanager is ready"
-        else
-          echo "❌ sdkmanager not found!"
-          exit 1
-        fi
 
     - name: Install Python dependencies
       run: |
         pip install --upgrade pip
-        pip install Cython==0.29.33
-        pip install buildozer
+        pip install Cython==0.29.33 buildozer
 
-    - name: Run Buildozer
+    - name: Check buildozer.spec presence
       run: |
         if [ ! -f buildozer.spec ]; then
-          echo "❌ buildozer.spec not found!"
+          echo "❌ buildozer.spec not found! Run 'buildozer init' locally, configure it, and commit."
           exit 1
         fi
-        buildozer android debug
 
-    - name: Upload APK
+    - name: Run Buildozer to build APK
+      run: buildozer android debug
+
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         path: bin/*.apk
         if-no-files-found: error
         retention-days: 7
 
-    - name: Create Release
+    - name: Create GitHub Release
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
