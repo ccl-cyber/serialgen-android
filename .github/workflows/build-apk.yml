@@ -39,18 +39,19 @@ jobs:
         cd $ANDROID_SDK_ROOT/cmdline-tools
         wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
         unzip cmdline-tools.zip
-        mv cmdline-tools latest
-        rm cmdline-tools.zip
+        mkdir -p latest/cmdline-tools
+        mv cmdline-tools/* latest/cmdline-tools/
+        rm -rf cmdline-tools cmdline-tools.zip
 
     - name: Update PATH
-      run: echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+      run: echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/cmdline-tools" >> $GITHUB_PATH
 
     - name: Accept Android licenses
-      run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+      run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/cmdline-tools/bin/sdkmanager --licenses
 
     - name: Install SDK Components
       run: |
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34"
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/cmdline-tools/bin/sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34"
 
     - name: Symlink SDK for Buildozer
       run: |
